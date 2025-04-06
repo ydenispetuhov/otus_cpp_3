@@ -56,11 +56,11 @@ jobs:
       # create a root directory
       # create a control file
       run: | 
-            mkdir ${{github.workspace}}/build/PKG_SOURCE
-            mkdir ${{github.workspace}}/build/PKG_SOURCE/DEBIAN
-            touch ${{github.workspace}}/build/PKG_SOURCE/DEBIAN/control
-            cp -Rf ${{github.workspace}}/build ${{github.workspace}}/build/PKG_SOURCE/DEBIAN
-            dpkg-deb --build ${{github.workspace}}/build/PKG_SOURCE/DEBIAN package.deb
+            mkdir ${{github.workspace}}/PKG_SOURCE
+            mkdir ${{github.workspace}}/PKG_SOURCE/DEBIAN
+            touch ${{github.workspace}}/PKG_SOURCE/DEBIAN/control
+            cp -Rf ${{github.workspace}}/build ${{github.workspace}}/PKG_SOURCE/DEBIAN
+            dpkg-deb --build ${{github.workspace}}/PKG_SOURCE/DEBIAN package.deb
 
     - name: Release the Package
       uses: softprops/action-gh-release@v1
