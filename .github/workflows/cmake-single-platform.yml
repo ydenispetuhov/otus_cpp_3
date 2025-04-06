@@ -90,7 +90,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./my_boost_pool_alloc-0.0.${{ github.run_number }}-Linux.deb
+        asset_path: ${{github.workspace}}/build/my_boost_pool_alloc-0.0.${{ github.run_number }}-Linux.deb
         asset_name: my_boost_pool_alloc-0.0.${{ github.run_number }}-Linux.deb
         asset_content_type: application/vnd.debian.binary-package
 
