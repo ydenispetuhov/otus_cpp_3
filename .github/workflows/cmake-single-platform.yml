@@ -15,7 +15,7 @@ env:
 
 # Permission can be added at job level or workflow level
 permissions:
-  contents: write-all
+  contents: write
 
 jobs:
   build:
