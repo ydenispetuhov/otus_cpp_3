@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(06.allocator)
+set(PATCH_VERSION "1" CACHE INTERNAL "Patch version")
+set(PROJECT_VESRION 0.0.${PATCH_VERSION})
+
+project(my_boost_pool_alloc VERSION ${PROJECT_VESRION})
 
 # Указываем, что требуется библиотека Boost
 find_package(Boost 1.86.0 REQUIRED)
