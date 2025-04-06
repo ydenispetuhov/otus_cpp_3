@@ -51,5 +51,22 @@ jobs:
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: ctest -C ${{env.BUILD_TYPE}}
 
-    - name: Create package
-      run: cmake --build . --target package
+  Create_Packages:
+    name: Create Package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          path: "REPO"
+
+      - name: Copy script files around to stop .github from being added to the package then build the package
+        run: |
+          mkdir PKG_SOURCE
+          cp -Rf REPO/usr REPO/etc REPO/DEBIAN PKG_SOURCE
+          dpkg-deb --build PKG_SOURCE package.deb
+
+      - name: Release the Package
+        uses: softprops/action-gh-release@v1
+        with:
+          files: package.deb
