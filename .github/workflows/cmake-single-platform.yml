@@ -52,4 +52,4 @@ jobs:
       run: ctest -C ${{env.BUILD_TYPE}}
 
     - name: Create package
-    - run: cmake --build . --target package
+      run: cmake --build . --target package
