@@ -12,5 +12,5 @@ chmod +x my_boost_pool_alloc
 # chmod +x 04_polymorphism
 # chmod +x 05_polymorphic_allocator
 # chmod +x my_boost_pool_alloc
-# cpack --config CPackConfig.cmake
-# make package_source
+cpack --config CPackConfig.cmake
+make package_source
