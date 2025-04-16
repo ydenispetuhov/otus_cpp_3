@@ -3,6 +3,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <array>
 #include <utility>
 
 using Pool = boost::pool<boost::default_user_allocator_new_delete>;
@@ -25,6 +26,20 @@ template <typename T> struct my_pool_alloc_vec {
         std::cout << __PRETTY_FUNCTION__ << std::endl;
         assert(pool_size() >= sizeof(U));
     }
+
+    // void construct(const size_t n, const T &x){
+    //     this->allocate(n);
+    // }
+
+    // void construct(T *data, const T &x){
+    //     this->allocate(sizeof(T));
+    // }
+
+    // void construct(T *data, const T &x) {
+    //     this->_pool = Pool(DEFAULT_SIZE_POOL);
+    //     std::cout << __PRETTY_FUNCTION__ << std::endl;
+    // }
+
 
     T *allocate(const size_t n) {
         std::cout << __PRETTY_FUNCTION__ << std::endl;
@@ -98,13 +113,71 @@ int factorial(int n) {
     return n * factorial(n - 1);
 };
 
+
+template <class T, class Allocator = std::allocator<T>>
+class my_vector
+{
+public: 
+
+    my_vector(){};
+
+    my_vector(const T& n, const my_pool_alloc_vec<T> other): alloc(other){}
+
+    void push_back(const T &x)
+    {
+        if (size == capacity)
+        {
+            capacity = capacity * 2 + 1;
+            // T* newData = ::operator new(capacity * sizeof(T));
+             T* tmp = alloc.allocate(capacity);
+            for (size_t i = 0; i < size; i++) {
+                tmp[i] = data[i];
+            }
+
+            alloc.deallocate(data, size);
+            data = tmp;
+        }
+
+        data[size] = x;
+        ++size;
+    }
+
+    T& operator[](std::size_t pos) {
+    if (pos >= 0 && pos <= size) return *(this->data + pos);
+    throw std::out_of_range("Out of bounds element access");
+    }
+
+private:
+    size_t size = 0;
+    size_t capacity = 0;
+    T *data = nullptr;
+
+    Allocator alloc;
+};
+
+
 int main() {
     //using boost::container::vector;
     using std::vector;
 
     Pool pool(DEFAULT_SIZE_POOL);
- 
-    auto v = std::vector<int, my_pool_alloc_vec<int>>(10, pool);
+
+    auto vec_pool = my_pool_alloc_vec<int>(pool);
+
+    auto myvec1 = my_vector<int, my_pool_alloc_vec<int>>(10, vec_pool);
+    for (int i = 0; i < 10; ++i)
+	{
+		myvec1.push_back(i);
+	}
+
+    auto myvec2 = my_vector<int>();
+
+    for (int i = 0; i < 10; ++i)
+	{
+		myvec2.push_back(i);
+	}
+
+    auto v = std::vector<int, my_pool_alloc_vec<int>>(10, vec_pool);
 	// v.reserve(5);
 	for (int i = 0; i < 10; ++i)
 	{
