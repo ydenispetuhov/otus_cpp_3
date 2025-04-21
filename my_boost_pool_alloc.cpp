@@ -27,20 +27,6 @@ template <typename T> struct my_pool_alloc_vec {
         assert(pool_size() >= sizeof(U));
     }
 
-    // void construct(const size_t n, const T &x){
-    //     this->allocate(n);
-    // }
-
-    // void construct(T *data, const T &x){
-    //     this->allocate(sizeof(T));
-    // }
-
-    // void construct(T *data, const T &x) {
-    //     this->_pool = Pool(DEFAULT_SIZE_POOL);
-    //     std::cout << __PRETTY_FUNCTION__ << std::endl;
-    // }
-
-
     T *allocate(const size_t n) {
         std::cout << __PRETTY_FUNCTION__ << std::endl;
         T* ret = static_cast<T*>(_pool.ordered_malloc(n));
@@ -147,6 +133,14 @@ public:
     throw std::out_of_range("Out of bounds element access");
     }
 
+    T *begin() { return data; };
+
+    T *end() { return data + size; };
+
+    const T *begin() const { return data; };
+
+    const T *end() const { return data + size; };
+
 private:
     size_t size = 0;
     size_t capacity = 0;
@@ -165,6 +159,8 @@ int main() {
     auto vec_pool = my_pool_alloc_vec<int>(pool);
 
     auto myvec1 = my_vector<int, my_pool_alloc_vec<int>>(10, vec_pool);
+
+    //fill myvec1
     for (int i = 0; i < 10; ++i)
 	{
 		myvec1.push_back(i);
@@ -172,12 +168,15 @@ int main() {
 
     auto myvec2 = my_vector<int>();
 
+    //fill myvec2
     for (int i = 0; i < 10; ++i)
 	{
 		myvec2.push_back(i);
 	}
 
     auto v = std::vector<int, my_pool_alloc_vec<int>>(10, vec_pool);
+
+    //fill v
 	// v.reserve(5);
 	for (int i = 0; i < 10; ++i)
 	{
@@ -185,6 +184,21 @@ int main() {
 		v.emplace_back(i);
 		std::cout << std::endl;
 	}
+
+    // out myvec1
+    for (auto const &elem: myvec1) {
+            std::cout << elem << std::endl;
+        }
+
+    // out myvec2
+    for (auto const &elem: myvec2) {
+            std::cout << elem << std::endl;
+        }
+
+    // out v
+    for (auto const &elem: v) {
+            std::cout << elem << std::endl;
+        }
 
     auto m1 = std::map<int, int, std::less<int>, boost::pool_allocator<std::pair<const int, int>>>{};
     auto m2 = std::map<int, int, std::less<int>, my_pool_alloc_map<std::pair<const int, int>>>{};
