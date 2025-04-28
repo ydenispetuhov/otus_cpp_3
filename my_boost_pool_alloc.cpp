@@ -10,26 +10,51 @@ using Pool = boost::pool<boost::default_user_allocator_new_delete>;
 
 const int DEFAULT_SIZE_POOL = 10;
 
-template <typename T> struct my_pool_alloc_vec {
 
+
+template <typename T, int def_size = DEFAULT_SIZE_POOL>
+struct my_pool_alloc {
+public:
     using value_type = T;
 
-	~my_pool_alloc_vec() = default;
+    ~my_pool_alloc() = default;
 
-    my_pool_alloc_vec(Pool& pool) : _pool(pool) {
+    template <typename U>
+    struct rebind {
+        using other = my_pool_alloc<U, def_size>;
+    };
+
+    my_pool_alloc() : pool_ (new Pool(sizeof(T) * def_size/*nrequested_size*/, 32/*nnext_size*/, 32/*nmax_size*/)) {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
+    }
+
+    // template <typename U, typename... Args>
+    // void construct(U* p, Args&&... args) {
+    //     new (p) U(std::forward<Args>(args)...);
+    // }
+
+    my_pool_alloc(const size_t size) : pool_(new Pool(sizeof(T) * size)) {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
+    }
+    
+    my_pool_alloc(T& ref_val, const size_t size) : pool_(new Pool(sizeof(T) * size)) {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
+    }
+
+    my_pool_alloc(Pool& pool) : pool_(&pool) {
         std::cout << __PRETTY_FUNCTION__ << std::endl;
         assert(pool_size() >= sizeof(T));
     }
 
     template <typename U>
-    my_pool_alloc_vec(my_pool_alloc_vec<U> const& other) : _pool(other._pool) {
+    my_pool_alloc(my_pool_alloc<U> const& other) : pool_(other._pool) {
         std::cout << __PRETTY_FUNCTION__ << std::endl;
         assert(pool_size() >= sizeof(U));
     }
 
-    T *allocate(const size_t n) {
+      T *allocate(const size_t n) {
         std::cout << __PRETTY_FUNCTION__ << std::endl;
-        T* ret = static_cast<T*>(_pool.ordered_malloc(n));
+        T* ret = static_cast<T*>(pool_->ordered_malloc(n));
         if (!ret && n) throw std::bad_alloc();
         return ret;
     }
@@ -37,61 +62,18 @@ template <typename T> struct my_pool_alloc_vec {
 
     void deallocate(T* ptr, const size_t n) {
         std::cout << __PRETTY_FUNCTION__ << std::endl;
-        if (ptr && n) _pool.ordered_free(ptr, n);
+        if (ptr && n) pool_->ordered_free(ptr, n);
     }
 
     // for comparing
-    size_t pool_size() const { return _pool.get_requested_size(); }
-
-  private:
-    Pool& _pool;
-};
-
-template <class T, class U> bool operator==(const my_pool_alloc_vec<T> &a, const my_pool_alloc_vec<U> &b) { return a.pool_size()==b.pool_size(); }
-template <class T, class U> bool operator!=(const my_pool_alloc_vec<T> &a, const my_pool_alloc_vec<U> &b) { return a.pool_size()!=b.pool_size(); }
-
-template <typename T>
-class my_pool_alloc_map {
-public:
-    using value_type = T;
-
-    my_pool_alloc_map() : pool_(sizeof(T) * DEFAULT_SIZE_POOL/*nrequested_size*/, 32/*nnext_size*/, 32/*nmax_size*/) {
-        std::cout << __PRETTY_FUNCTION__ << std::endl;
-    }
-
-    my_pool_alloc_map(const size_t size) : pool_(sizeof(T) * size) {
-        std::cout << __PRETTY_FUNCTION__ << std::endl;
-    }
-
-    template <typename U>
-    my_pool_alloc_map(const my_pool_alloc_map<U>&) : pool_(sizeof(T)) {
-        std::cout << __PRETTY_FUNCTION__ << std::endl;
-    }
-
-    my_pool_alloc_map(Pool& pool) : pool_(pool) {
-        std::cout << __PRETTY_FUNCTION__ << std::endl;
-    }
-
-    T* allocate(std::size_t n) {
-        std::cout << __PRETTY_FUNCTION__ << std::endl;
-        if (n > 1) {
-            throw std::bad_alloc();
-        }
-        std::cout << "pool_.size = " << pool_.get_max_size() << std::endl;
-        return static_cast<T*>(pool_.malloc());
-    }
-
-    void deallocate(T* p, std::size_t n) {
-        std::cout << __PRETTY_FUNCTION__ << std::endl;
-        pool_.free(p);
-    }
+    size_t pool_size() const { return pool_->get_requested_size(); }
 
     private:
-    Pool pool_;
+    Pool* pool_;
 };
 
-template <class T, class U> bool operator==(const my_pool_alloc_map<T> &a, const my_pool_alloc_map<U> &b) { return a.pool_size()==b.pool_size(); }
-template <class T, class U> bool operator!=(const my_pool_alloc_map<T> &a, const my_pool_alloc_map<U> &b) { return a.pool_size()!=b.pool_size(); }
+template <class T, class U> bool operator==(const my_pool_alloc<T> &a, const my_pool_alloc<U> &b) { return a.pool_size()==b.pool_size(); }
+template <class T, class U> bool operator!=(const my_pool_alloc<T> &a, const my_pool_alloc<U> &b) { return a.pool_size()!=b.pool_size(); }
 
 
 int factorial(int n) {
@@ -107,7 +89,9 @@ public:
 
     my_vector(){};
 
-    my_vector(const T& n, const my_pool_alloc_vec<T> other): alloc(other){}
+    my_vector(const Allocator other): alloc(other) {}
+
+    my_vector(const size_t n, const Allocator other): alloc(other), capacity(n) {}
 
     void push_back(const T &x)
     {
@@ -155,16 +139,18 @@ int main() {
     using std::vector;
 
     Pool pool(DEFAULT_SIZE_POOL);
-
-    auto vec_pool = my_pool_alloc_vec<int>(pool);
-
-    auto myvec1 = my_vector<int, my_pool_alloc_vec<int>>(10, vec_pool);
+    auto vec_pool = my_pool_alloc<int>(pool);
+    auto myvec1 = my_vector<int, my_pool_alloc<int>>(vec_pool);
 
     //fill myvec1
     for (int i = 0; i < 10; ++i)
 	{
 		myvec1.push_back(i);
 	}
+    // out myvec1
+    for (auto const &elem: myvec1) {
+            std::cout << elem << std::endl;
+        }
 
     auto myvec2 = my_vector<int>();
 
@@ -173,8 +159,14 @@ int main() {
 	{
 		myvec2.push_back(i);
 	}
+    // out myvec2
+    for (auto const &elem: myvec2) {
+            std::cout << elem << std::endl;
+        }
 
-    auto v = std::vector<int, my_pool_alloc_vec<int>>(10, vec_pool);
+    Pool pool2(DEFAULT_SIZE_POOL);
+    auto vec_pool2 = my_pool_alloc<int>(pool2);
+    auto v = std::vector<int, my_pool_alloc<int>>(vec_pool2);
 
     //fill v
 	// v.reserve(5);
@@ -184,24 +176,24 @@ int main() {
 		v.emplace_back(i);
 		std::cout << std::endl;
 	}
-
-    // out myvec1
-    for (auto const &elem: myvec1) {
-            std::cout << elem << std::endl;
-        }
-
-    // out myvec2
-    for (auto const &elem: myvec2) {
-            std::cout << elem << std::endl;
-        }
-
     // out v
     for (auto const &elem: v) {
             std::cout << elem << std::endl;
         }
 
     auto m1 = std::map<int, int, std::less<int>, boost::pool_allocator<std::pair<const int, int>>>{};
-    auto m2 = std::map<int, int, std::less<int>, my_pool_alloc_map<std::pair<const int, int>>>{};
+    auto m2 = std::map<int, int, std::less<int>, my_pool_alloc<std::pair<const int, int>>>{};
+    
+    /*
+    typedef std::map<
+            int,
+            int,
+            std::less<int>,
+            boost::fast_pool_allocator<std::pair<int, int>,boost::default_user_allocator_malloc_free, boost::details::pool::null_mutex, 1024>
+        >  MyMap;
+    
+    MyMap m2;
+    */
 
     std::cout << " fill map1 "  << std::endl;
     // fill map1
